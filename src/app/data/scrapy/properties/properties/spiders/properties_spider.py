@@ -1,4 +1,6 @@
 import scrapy
+from datetime import date
+import unidecode
 
 # Next page button = '//li[@class="andes-pagination__button andes-pagination__button--next shops__pagination-button"]/a/@href'
 
@@ -12,6 +14,9 @@ class PropertiesSpider(scrapy.Spider):
         'FEED_FORMAT': 'json'
     }
 
+    def __init__(self):
+        self.today = date.today().strftime("%Y-%m-%d")
+
     def parse_property(self, response, **kwargs):
         if kwargs:
             hrefs = kwargs['hrefs']
@@ -19,12 +24,16 @@ class PropertiesSpider(scrapy.Spider):
             next_page_button_link = kwargs['next_page_button_link']
 
             price = response.xpath('//*[@id="price"]//meta[@itemprop="price"]/@content').get()
-            location = response.xpath('//*[@id="location"]//div/p[@class="ui-pdp-color--BLACK ui-pdp-size--SMALL ui-pdp-family--REGULAR ui-pdp-media__title"]/text()').get()
+            location = unidecode.unidecode(response.xpath('//*[@id="location"]//div/p[@class="ui-pdp-color--BLACK ui-pdp-size--SMALL ui-pdp-family--REGULAR ui-pdp-media__title"]/text()').get())
             keys = response.xpath('//table[@class="andes-table"]/tbody/tr/th/text()').getall()
             values = response.xpath('//table[@class="andes-table"]/tbody/tr/td/span/text()').getall()
 
-            property_dict.update({'price': price, 'location': location})
-            property_dict.update({k:v for k,v in zip(keys, values)})
+            property_dict.update({
+                'price': price,
+                'location': location
+                }
+            )
+            property_dict.update({unidecode.unidecode(k):unidecode.unidecode(v) for k,v in zip(keys, values)})
             yield property_dict
 
             if hrefs:
@@ -32,6 +41,8 @@ class PropertiesSpider(scrapy.Spider):
                 sit_site_id = href.split('/')[3].split('-')[0]
                 property_id = href.split('/')[3].split('-')[1]
                 property_dict = {
+                'date': self.today,
+                'platform': 'Mercadolibre',
                 'sit_site_id': sit_site_id,
                 'property_id': property_id
                 }
@@ -50,6 +61,8 @@ class PropertiesSpider(scrapy.Spider):
             sit_site_id = href.split('/')[3].split('-')[0]
             property_id = href.split('/')[3].split('-')[1]
             property_dict = {
+                'date': self.today,
+                'platform': 'Mercadolibre',
                 'sit_site_id': sit_site_id,
                 'property_id': property_id
             }
